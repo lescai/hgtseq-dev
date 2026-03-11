@@ -11,7 +11,7 @@ workflow SORTBAM {
     fasta      // channel: [mandatory] /path/to/reference/fasta
 
     main:
-    ch_versions = Channel.empty()
+    ch_versions = channel.empty()
 
     // samtools stats block needs the bam file to be sorted
     // and indexed

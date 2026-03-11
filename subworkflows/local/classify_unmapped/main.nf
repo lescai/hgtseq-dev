@@ -17,9 +17,9 @@ workflow CLASSIFY_UNMAPPED {
 
     main:
 
-    ch_versions = Channel.empty()
+    ch_versions = channel.empty()
 
-    SAMTOOLS_VIEW_SINGLE ( bam_bai, Channel.value([]), Channel.value([]) )
+    SAMTOOLS_VIEW_SINGLE ( bam_bai, channel.value([]), channel.value([]) )
     ch_versions = ch_versions.mix(SAMTOOLS_VIEW_SINGLE.out.versions)
 
     SAMTOOLS_VIEW_BOTH ( bam_bai, [[],[]], [] )

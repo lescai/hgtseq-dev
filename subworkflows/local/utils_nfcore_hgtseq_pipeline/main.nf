@@ -35,7 +35,7 @@ workflow PIPELINE_INITIALISATION {
 
     main:
 
-    ch_versions = Channel.empty()
+    ch_versions = channel.empty()
 
     //
     // Print version and exit if required and dump pipeline parameters to JSON file
@@ -72,13 +72,13 @@ workflow PIPELINE_INITIALISATION {
     // Create channel from input file provided through params.input
     //
 
-Channel
+channel
     .fromList(samplesheetToList(params.input, "${projectDir}/assets/schema_input.json"))
     .map { row ->
         def (sample, fastq_1, fastq_2, bam) = row
         def meta = [id: sample]
         if (fastq_1) {
-            return [ meta, [ fastq_1, fastq_2 ].findAll { it != null && it != 'null' } ]
+            return [ meta, [ fastq_1, fastq_2 ].findAll { read_file -> read_file != null && read_file != 'null' } ]
         } else if (bam) {
             return [ meta, [ bam ] ]
         } else {

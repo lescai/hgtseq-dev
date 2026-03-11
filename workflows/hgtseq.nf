@@ -6,17 +6,6 @@
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    CONFIG FILES
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*/
-
-ch_multiqc_config          = Channel.fromPath("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-ch_multiqc_custom_config   = params.multiqc_config ? Channel.fromPath( params.multiqc_config, checkIfExists: true ) : Channel.empty()
-ch_multiqc_logo            = params.multiqc_logo   ? Channel.fromPath( params.multiqc_logo, checkIfExists: true ) : Channel.empty()
-ch_multiqc_custom_methods_description = params.multiqc_methods_description ? file(params.multiqc_methods_description, checkIfExists: true) : file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-
-/*
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT LOCAL MODULES/SUBWORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -62,8 +51,8 @@ workflow HGTSEQ {
     ch_input
 
     main:
-    ch_versions = Channel.empty()
-    ch_multiqc_files = Channel.empty()
+    ch_versions = channel.empty()
+    ch_multiqc_files = channel.empty()
 
     // check if databases are local or compressed archives
     krakendb = returnFile(params.krakendb)
@@ -73,18 +62,18 @@ workflow HGTSEQ {
     if (hasExtension(krakendb, "tar.gz")) {
         krakendb_input = [ [], krakendb ]
         UNTAR_KRAKEN(krakendb_input)
-        ch_krakendb = UNTAR_KRAKEN.out.untar.map{ it[1] }
+        ch_krakendb = UNTAR_KRAKEN.out.untar.map { untar_entry -> untar_entry[1] }
     } else {
-        ch_krakendb = Channel.value(krakendb)
+        ch_krakendb = channel.value(krakendb)
     }
 
     // parsing krona database
     if (hasExtension(kronadb, "tar.gz")) {
         kronadb_input = [ [], kronadb ]
         UNTAR_KRONA(kronadb_input)
-        ch_kronadb = UNTAR_KRONA.out.untar.map{ it[1] }
+        ch_kronadb = UNTAR_KRONA.out.untar.map { untar_entry -> untar_entry[1] }
     } else {
-        ch_kronadb = Channel.value(kronadb)
+        ch_kronadb = channel.value(kronadb)
     }
 
 
@@ -152,11 +141,11 @@ workflow HGTSEQ {
     // execute reporting only if genome is Human
     if (!workflow.profile.contains('conda')) {
             REPORTING (
-                CLASSIFY_UNMAPPED.out.classified_single.collect{ it[1] },
-                CLASSIFY_UNMAPPED.out.classified_both.collect{ it[1] },
-                CLASSIFY_UNMAPPED.out.candidate_integrations.collect{ it[1] },
+                CLASSIFY_UNMAPPED.out.classified_single.collect { row -> row[1] },
+                CLASSIFY_UNMAPPED.out.classified_both.collect { row -> row[1] },
+                CLASSIFY_UNMAPPED.out.candidate_integrations.collect { row -> row[1] },
                 ch_kronadb,
-                CLASSIFY_UNMAPPED.out.classified_single.collect{ it[0].id }
+                CLASSIFY_UNMAPPED.out.classified_single.collect { row -> row[0].id }
             )
             ch_versions = ch_versions.mix(REPORTING.out.versions)
     }
@@ -176,44 +165,44 @@ workflow HGTSEQ {
     //
     // MODULE: MultiQC
     //
-    ch_multiqc_config        = Channel.fromPath(
+    ch_multiqc_config        = channel.fromPath(
         "$projectDir/assets/multiqc_config.yml", checkIfExists: true)
     ch_multiqc_custom_config = params.multiqc_config ?
-        Channel.fromPath(params.multiqc_config, checkIfExists: true) :
-        Channel.empty()
+        channel.fromPath(params.multiqc_config, checkIfExists: true) :
+        channel.empty()
     ch_multiqc_logo          = params.multiqc_logo ?
-        Channel.fromPath(params.multiqc_logo, checkIfExists: true) :
-        Channel.empty()
+        channel.fromPath(params.multiqc_logo, checkIfExists: true) :
+        channel.empty()
 
     summary_params      = paramsSummaryMap(
         workflow, parameters_schema: "nextflow_schema.json")
-    ch_workflow_summary = Channel.value(paramsSummaryMultiqc(summary_params))
+    ch_workflow_summary = channel.value(paramsSummaryMultiqc(summary_params))
     ch_multiqc_files = ch_multiqc_files.mix(
         ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ?
         file(params.multiqc_methods_description, checkIfExists: true) :
         file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
-    ch_methods_description                = Channel.value(
+    ch_methods_description                = channel.value(
         methodsDescriptionText(ch_multiqc_custom_methods_description))
 
     ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_files = ch_multiqc_files.mix(ch_methods_description.collectFile(name: 'methods_description_mqc.yaml'))
     // adding reads QC for both trimmed and untrimmed
     if (!params.isbam) {
-        ch_multiqc_files = ch_multiqc_files.mix(READS_QC.out.fastqc_untrimmed.collect{it[1]}.ifEmpty([]))
-        ch_multiqc_files = ch_multiqc_files.mix(READS_QC.out.fastqc_trimmed.collect{it[1]}.ifEmpty([]))
+        ch_multiqc_files = ch_multiqc_files.mix(READS_QC.out.fastqc_untrimmed.collect { row -> row[1] }.ifEmpty([]))
+        ch_multiqc_files = ch_multiqc_files.mix(READS_QC.out.fastqc_trimmed.collect { row -> row[1] }.ifEmpty([]))
     }
     // adding BAM qc
-    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.stats.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.flagstat.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.idxstats.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.qualimap.collect{it[1]}.ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.bamstats.collect{it[1]}.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.stats.collect { row -> row[1] }.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.flagstat.collect { row -> row[1] }.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.idxstats.collect { row -> row[1] }.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.qualimap.collect { row -> row[1] }.ifEmpty([]))
+    ch_multiqc_files = ch_multiqc_files.mix(BAM_QC.out.bamstats.collect { row -> row[1] }.ifEmpty([]))
     // adding kraken report if running full analysis
     // when running small test, small krakendb won't classify enough reads to generate a report
     if (params.multiqc_runkraken) {
-        ch_multiqc_files = ch_multiqc_files.mix(CLASSIFY_UNMAPPED.out.report_single.collect{it[1]}.ifEmpty([]))
-        ch_multiqc_files = ch_multiqc_files.mix(CLASSIFY_UNMAPPED.out.report_both.collect{it[1]}.ifEmpty([]))
+        ch_multiqc_files = ch_multiqc_files.mix(CLASSIFY_UNMAPPED.out.report_single.collect { row -> row[1] }.ifEmpty([]))
+        ch_multiqc_files = ch_multiqc_files.mix(CLASSIFY_UNMAPPED.out.report_both.collect { row -> row[1] }.ifEmpty([]))
     }
 
     ch_multiqc_files = ch_multiqc_files.mix(ch_collated_versions)

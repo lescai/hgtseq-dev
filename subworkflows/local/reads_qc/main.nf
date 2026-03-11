@@ -12,7 +12,7 @@ workflow READS_QC {
     trimmed_reads    // channel: [mandatory] [ val(meta), [ reads ] ]
 
     main:
-    ch_versions = Channel.empty()
+    ch_versions = channel.empty()
 
     FASTQC_UNTRIMMED (
         untrimmed_reads

@@ -17,7 +17,7 @@ workflow REPORTING {
 
     main:
 
-    ch_versions = Channel.empty()
+    ch_versions = channel.empty()
 
     GAWK_SINGLE ( classified_reads_single )
     ch_versions = ch_versions.mix(GAWK_SINGLE.out.versions)
@@ -25,7 +25,7 @@ workflow REPORTING {
     GAWK_BOTH ( classified_reads_both )
     ch_versions = ch_versions.mix(GAWK_BOTH.out.versions)
 
-    fakemeta = Channel.value([id: "group"])
+    fakemeta = channel.value([id: "group"])
     single_input = fakemeta.combine(GAWK_SINGLE.out.collated_reads)
 
     KRONA_KTIMPORTTAXONOMY_SINGLE ( single_input, taxonomy )
@@ -36,7 +36,7 @@ workflow REPORTING {
     KRONA_KTIMPORTTAXONOMY_BOTH ( both_input, taxonomy )
     ch_versions = ch_versions.mix(KRONA_KTIMPORTTAXONOMY_BOTH.out.versions)
 
-    ch_rmarkdown = Channel.value(file("$projectDir/assets/analysis_report.Rmd"))
+    ch_rmarkdown = channel.value(file("$projectDir/assets/analysis_report.Rmd"))
     RANALYSIS (  classified_reads_single, classified_reads_both, integration_sites, sampleids, ch_rmarkdown, params.istest, params.taxonomy_id)
 
     emit:
