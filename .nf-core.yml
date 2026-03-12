@@ -20,4 +20,3 @@ update:
   https://github.com/nf-core/modules.git:
     nf-core:
       fastqc: False
-      multiqc: False

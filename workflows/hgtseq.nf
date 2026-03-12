@@ -214,16 +214,17 @@ workflow HGTSEQ {
     )
 
     MULTIQC (
-        ch_multiqc_files.collect(),
-        ch_multiqc_config.toList(),
-        ch_multiqc_custom_config.toList(),
-        ch_multiqc_logo.toList(),
-        [],
-        []
+        channel.value([ id: 'multiqc' ]).combine(ch_multiqc_files.collect().toList())
+            .combine(ch_multiqc_config.toList())
+            .combine(ch_multiqc_custom_config.toList())
+            .combine(ch_multiqc_logo.toList())
+            .map { meta, multiqc_files, multiqc_config, multiqc_custom_config, multiqc_logo ->
+                [ meta, multiqc_files, [ multiqc_config, multiqc_custom_config ].flatten(), multiqc_logo, [], [] ]
+            }
     )
 
     emit:
-    multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
+    multiqc_report = MULTIQC.out.report.map { meta, report -> report }.toList() // channel: /path/to/multiqc_report.html
     versions       = ch_versions                 // channel: [ path(versions.yml) ]
 
 }
