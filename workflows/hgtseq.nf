@@ -177,8 +177,6 @@ workflow HGTSEQ {
     summary_params      = paramsSummaryMap(
         workflow, parameters_schema: "nextflow_schema.json")
     ch_workflow_summary = channel.value(paramsSummaryMultiqc(summary_params))
-    ch_multiqc_files = ch_multiqc_files.mix(
-        ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
     ch_multiqc_custom_methods_description = params.multiqc_methods_description ?
         file(params.multiqc_methods_description, checkIfExists: true) :
         file("$projectDir/assets/methods_description_template.yml", checkIfExists: true)
@@ -206,20 +204,18 @@ workflow HGTSEQ {
     }
 
     ch_multiqc_files = ch_multiqc_files.mix(ch_collated_versions)
-    ch_multiqc_files = ch_multiqc_files.mix(
-        ch_methods_description.collectFile(
-            name: 'methods_description_mqc.yaml',
-            sort: true
-        )
-    )
+    
+    // Flatten any nested file collections
+    ch_multiqc_files = ch_multiqc_files.flatten()
+
+    ch_multiqc_files.collect()
+        .map { files -> [ [ id: 'multiqc' ], files, [], [], [], [] ] }
+        .set { ch_multiqc_input }
 
     MULTIQC (
-        channel.value([ id: 'multiqc' ]).combine(ch_multiqc_files.collect().toList())
-            .combine(ch_multiqc_config.toList())
-            .combine(ch_multiqc_custom_config.toList())
-            .combine(ch_multiqc_logo.toList())
-            .map { meta, multiqc_files, multiqc_config, multiqc_custom_config, multiqc_logo ->
-                [ meta, multiqc_files, [ multiqc_config, multiqc_custom_config ].flatten(), multiqc_logo, [], [] ]
+        ch_multiqc_input.combine(ch_multiqc_config)
+            .map { meta, files, _cfg, _logo, _rn, _sn, config ->
+                [ meta, files, [ config ], _logo, _rn, _sn ]
             }
     )
 
