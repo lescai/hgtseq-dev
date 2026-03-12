@@ -145,7 +145,7 @@ workflow HGTSEQ {
                 CLASSIFY_UNMAPPED.out.classified_both,
                 CLASSIFY_UNMAPPED.out.candidate_integrations.collect { row -> row[1] },
                 ch_kronadb,
-                CLASSIFY_UNMAPPED.out.classified_single.collect { row -> row[0].id }
+                CLASSIFY_UNMAPPED.out.classified_single.map { meta, f -> meta.id }.collect()
             )
             ch_versions = ch_versions.mix(REPORTING.out.versions)
     }

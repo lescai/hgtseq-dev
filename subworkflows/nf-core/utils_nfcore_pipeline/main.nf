@@ -84,6 +84,18 @@ def processVersionsFromYAML(yaml_file) {
 }
 
 //
+// Convert a version tuple [process, tool, version] to YAML string
+//
+def processVersionsFromTuple(version_tuple) {
+    def yaml = new org.yaml.snakeyaml.Yaml()
+    def process_name = version_tuple[0].toString().tokenize(':')[-1]
+    def tool_name    = version_tuple[1].toString()
+    def tool_version = version_tuple[2].toString()
+    def versions     = [(process_name): [(tool_name): tool_version]]
+    return yaml.dumpAsMap(versions).trim()
+}
+
+//
 // Get workflow version for pipeline
 //
 def workflowVersionToYAML() {
@@ -96,9 +108,20 @@ def workflowVersionToYAML() {
 
 //
 // Get channel of software versions used in pipeline in YAML format
+// Handles both old-style YAML file paths and new-style [process, tool, version] tuples
 //
 def softwareVersionsToYAML(ch_versions) {
-    return ch_versions.unique().map { version -> processVersionsFromYAML(version) }.unique().mix(channel.of(workflowVersionToYAML()))
+    return ch_versions
+        .unique()
+        .map { version ->
+            if (version instanceof List || version instanceof ArrayList) {
+                processVersionsFromTuple(version)
+            } else {
+                processVersionsFromYAML(version)
+            }
+        }
+        .unique()
+        .mix(channel.of(workflowVersionToYAML()))
 }
 
 //

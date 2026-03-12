@@ -38,7 +38,12 @@ workflow REPORTING {
     ch_versions = ch_versions.mix(KRONA_KTIMPORTTAXONOMY_BOTH.out.versions)
 
     ch_rmarkdown = channel.value(file("$projectDir/assets/analysis_report.Rmd"))
-    RANALYSIS (  classified_reads_single, classified_reads_both, integration_sites, sampleids, ch_rmarkdown, params.istest, params.taxonomy_id)
+
+    // Strip meta from tuples and collect all files before passing to RANALYSIS
+    ch_single_files = classified_reads_single.map { meta, f -> f }.collect()
+    ch_both_files   = classified_reads_both.map { meta, f -> f }.collect()
+
+    RANALYSIS ( ch_single_files, ch_both_files, integration_sites, sampleids, ch_rmarkdown, params.istest, params.taxonomy_id)
 
     emit:
     single_html = KRONA_KTIMPORTTAXONOMY_SINGLE.out.html
