@@ -22,8 +22,8 @@ workflow CLASSIFY_UNMAPPED {
     SAMTOOLS_VIEW_SINGLE ( bam_bai, channel.value([]), channel.value([]) )
     ch_versions = ch_versions.mix(SAMTOOLS_VIEW_SINGLE.out.versions)
 
-    SAMTOOLS_VIEW_BOTH ( bam_bai, [[],[]], [] )
-    ch_versions = ch_versions.mix(SAMTOOLS_VIEW_BOTH.out.versions)
+    SAMTOOLS_VIEW_BOTH ( bam_bai, [[],[],[]], [], [] )
+    ch_versions = ch_versions.mix(SAMTOOLS_VIEW_BOTH.out.versions_samtools)
 
     PARSEOUTPUTS ( SAMTOOLS_VIEW_SINGLE.out.bam )
     ch_versions = ch_versions.mix(PARSEOUTPUTS.out.versions)
@@ -35,10 +35,12 @@ workflow CLASSIFY_UNMAPPED {
     ch_versions = ch_versions.mix(SAMTOOLS_FASTQ_BOTH.out.versions)
 
     KRAKEN2_SINGLE ( SAMTOOLS_FASTQ_SINGLE.out.fastq, db, false, true )
-    ch_versions = ch_versions.mix(KRAKEN2_SINGLE.out.versions)
+    ch_versions = ch_versions.mix(KRAKEN2_SINGLE.out.versions_kraken2)
+    ch_versions = ch_versions.mix(KRAKEN2_SINGLE.out.versions_pigz)
 
     KRAKEN2_BOTH ( SAMTOOLS_FASTQ_BOTH.out.fastq, db, false, true )
-    ch_versions = ch_versions.mix(KRAKEN2_BOTH.out.versions)
+    ch_versions = ch_versions.mix(KRAKEN2_BOTH.out.versions_kraken2)
+    ch_versions = ch_versions.mix(KRAKEN2_BOTH.out.versions_pigz)
 
     emit:
     classified_single        = KRAKEN2_SINGLE.out.classified_reads_assignment

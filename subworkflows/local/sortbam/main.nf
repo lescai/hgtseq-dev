@@ -8,7 +8,7 @@ workflow SORTBAM {
 
     take:
     bam        // channel: [mandatory] [ val(meta), path(bam) ]
-    fasta      // channel: [mandatory] /path/to/reference/fasta
+    fasta      // val:     [optional]  /path/to/reference/fasta
 
     main:
     ch_versions = channel.empty()
@@ -16,11 +16,12 @@ workflow SORTBAM {
     // samtools stats block needs the bam file to be sorted
     // and indexed
 
-    SAMTOOLS_SORT ( bam, [[],[]] )
-    ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions.first())
+    ch_fasta = fasta ? channel.value([[id:'reference'], file(fasta)]) : channel.value([[],[]])
+    SAMTOOLS_SORT ( bam, ch_fasta, [] )
+    ch_versions = ch_versions.mix(SAMTOOLS_SORT.out.versions_samtools.first())
 
     SAMTOOLS_INDEX ( SAMTOOLS_SORT.out.bam )
-    ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions.first())
+    ch_versions = ch_versions.mix(SAMTOOLS_INDEX.out.versions_samtools.first())
 
     // additionally, the modules require a single channel containing
     // both the bam file and its index

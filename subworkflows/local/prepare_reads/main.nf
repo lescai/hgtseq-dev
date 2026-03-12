@@ -22,34 +22,36 @@ workflow PREPARE_READS {
     ch_versions = channel.empty()
     aligned_bam = channel.empty()
 
-    fasta_meta = channel.value(file(fasta)).map{ it -> [[id:it[0].baseName], it] }
+    fasta_meta = channel.value(file(fasta)).map { f -> [[id: f.baseName], f] }
 
     TRIMGALORE ( reads )
-    ch_versions = ch_versions.mix(TRIMGALORE.out.versions)
+    ch_versions = ch_versions.mix(TRIMGALORE.out.versions_trimgalore)
 
     if (aligner == "bwa-mem") {
         // reference is indexed if index not available in iGenomes
         BWAMEM1_INDEX ( fasta_meta )
-        ch_versions = ch_versions.mix(BWAMEM1_INDEX.out.versions)
+        ch_versions = ch_versions.mix(BWAMEM1_INDEX.out.versions_bwa)
 
         // sets bwaindex to correct input
         bwaindex      = params.fasta ? params.bwaindex      ? channel.fromPath(params.bwaindex).collect().map{ it -> [[id:it[0].baseName], it] } : BWAMEM1_INDEX.out.index : []
 
         // appropriately tagged interleaved FASTQ reads are mapped to the reference
         BWAMEM1_MEM ( TRIMGALORE.out.reads, bwaindex, [[],[]], false )
-        ch_versions = ch_versions.mix(BWAMEM1_MEM.out.versions)
+        ch_versions = ch_versions.mix(BWAMEM1_MEM.out.versions_bwa)
+        ch_versions = ch_versions.mix(BWAMEM1_MEM.out.versions_samtools)
         aligned_bam = BWAMEM1_MEM.out.bam
     } else {
         // reference is indexed if index not available in iGenomes
         BWAMEM2_INDEX ( fasta_meta )
-        ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions)
+        ch_versions = ch_versions.mix(BWAMEM2_INDEX.out.versions_bwamem2)
 
         // sets bwamem2index to correct input
-        bwamem2index  = params.fasta ? params.bwamem2index  ? channel.fromPath(params.bwamem2index).collect()  : BWAMEM2_INDEX.out.index : []
+        bwamem2index  = params.fasta ? params.bwamem2index  ? channel.fromPath(params.bwamem2index).collect().map{ it -> [[id: it[0].baseName], it] } : BWAMEM2_INDEX.out.index : []
 
         // appropriately tagged interleaved FASTQ reads are mapped to the reference
         BWAMEM2_MEM ( TRIMGALORE.out.reads, bwamem2index, [[],[]], false )
-        ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions)
+        ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions_bwamem2)
+        ch_versions = ch_versions.mix(BWAMEM2_MEM.out.versions_samtools)
         aligned_bam = BWAMEM2_MEM.out.bam
     }
 

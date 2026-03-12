@@ -25,12 +25,11 @@ process PARSEOUTPUTS {
         view \\
         $args \\
         -@ $task.cpus \\
-        -T $prefix \\
         $bam | cut -f 1,3,8 > ${prefix}_parsed_integration_sites.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        local: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//' ))
+        local: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
     END_VERSIONS
     """
 }

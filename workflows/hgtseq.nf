@@ -141,8 +141,8 @@ workflow HGTSEQ {
     // execute reporting only if genome is Human
     if (!workflow.profile.contains('conda')) {
             REPORTING (
-                CLASSIFY_UNMAPPED.out.classified_single.collect { row -> row[1] },
-                CLASSIFY_UNMAPPED.out.classified_both.collect { row -> row[1] },
+                CLASSIFY_UNMAPPED.out.classified_single,
+                CLASSIFY_UNMAPPED.out.classified_both,
                 CLASSIFY_UNMAPPED.out.candidate_integrations.collect { row -> row[1] },
                 ch_kronadb,
                 CLASSIFY_UNMAPPED.out.classified_single.collect { row -> row[0].id }
@@ -222,7 +222,8 @@ workflow HGTSEQ {
         []
     )
 
-    emit:multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
+    emit:
+    multiqc_report = MULTIQC.out.report.toList() // channel: /path/to/multiqc_report.html
     versions       = ch_versions                 // channel: [ path(versions.yml) ]
 
 }

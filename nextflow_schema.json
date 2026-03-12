@@ -188,6 +188,16 @@
                     "fa_icon": "fas fa-question-circle",
                     "hidden": true
                 },
+                "pipeline_version": {
+                    "type": "string",
+                    "description": "Version of the pipeline.",
+                    "hidden": true
+                },
+                "pipeline_doi": {
+                    "type": "string",
+                    "description": "DOI for the pipeline publication.",
+                    "hidden": true
+                },
                 "publish_dir_mode": {
                     "type": "string",
                     "default": "copy",

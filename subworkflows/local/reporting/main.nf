@@ -25,13 +25,14 @@ workflow REPORTING {
     GAWK_BOTH ( classified_reads_both )
     ch_versions = ch_versions.mix(GAWK_BOTH.out.versions)
 
+    // GAWK now emits [ val(meta), path(collated) ] — extract file and re-wrap with group meta for Krona
     fakemeta = channel.value([id: "group"])
-    single_input = fakemeta.combine(GAWK_SINGLE.out.collated_reads)
+    single_input = fakemeta.combine(GAWK_SINGLE.out.collated_reads.map { _meta, f -> f }.collect())
 
     KRONA_KTIMPORTTAXONOMY_SINGLE ( single_input, taxonomy )
     ch_versions = ch_versions.mix(KRONA_KTIMPORTTAXONOMY_SINGLE.out.versions)
 
-    both_input = fakemeta.combine(GAWK_BOTH.out.collated_reads)
+    both_input = fakemeta.combine(GAWK_BOTH.out.collated_reads.map { _meta, f -> f }.collect())
 
     KRONA_KTIMPORTTAXONOMY_BOTH ( both_input, taxonomy )
     ch_versions = ch_versions.mix(KRONA_KTIMPORTTAXONOMY_BOTH.out.versions)
